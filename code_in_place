@@ -1,88 +1,146 @@
-Comp_list = ['JEE MAIN', 'BITSAT', 'JEE ADVANCED', 'VITEEE', 'WBJEE', 'COMEDK UGET', 'MHT CET', 'SRMJEEE', 'KIITEE', 'MET', 'KCET', 'AP EAMCET','KEAM', 'AMUEEE', 'CUET',
-'GUJCET' ]
-membership = input ('Do you belong to Varshney Samaj (Y/N): ')
+
+import pandas as pd
+import regmail
+import os
+
+Comp_list = ['JEE MAIN', 'BITSAT', 'JEE ADVANCED', 'VITEEE', 'WBJEE', 'COMEDK UGET', 'MHT CET', 'MET', 'KCET', 'AP EAMCET', 'KEAM', 'AMUEEE', 'CUET', 'GUJCET']
+
+# Initialize an empty DataFrame to store application data
+df = pd.DataFrame(columns=[
+    'name', 'dob', 'email_id', 'phone', 'address', 'guardian', 'comp_exam', 'rank_comp_exam', 
+    'engg_colg', 'field_engg', 'yr_grad', 'tenth', 'tenth_marks', 'twelth', 'twelth_marks', 
+    'deserve', 'inspired', 'goals', 'membership', 'file_path'])
 
 def main():
-    print("Welcome to the Mahima Medhavi Chatra Scholarship Application. This scholarship is intended to support Varshney Samaj girls who have been selected in any engineering field through competitive exams. Please fill out the form completely and upload the required documents by July 15, 2024.!")
-    varshney_samaj_membership()
-    if membership == 'Y':
-        print ('Please proceed with the Application Process')
-        academic_info()
-        personal_info()
-        additional_info()
-        expectations_recipient()
-        if agree == 'Y':
-            print ("""Declaration 
-                (I hereby declare that the information provided is true and correct 
-                to the best of my knowledge and belief. I understand that any false 
-                information may result in the cancellation of my 
-                application/scholarship""")
-            agree2 = input("I Agree : ")
-            if agree2 == 'Y':
-                print ('Thank you for your application! We will connect with you soon')
-    else:
-        print (' Sincere Apologies! but this scholarship is currently for Varshney girls only!')
+    print("Welcome to the Mahima Medhavi Chatra Scholarship Application. This scholarship is intended to support Varshney Samaj girls who have been selected in any engineering field through competitive exams. Please fill out the form completely and upload the required documents by July 15, 2024!")
     
-        
-
+    membership = varshney_samaj_membership()
+    
+    if membership == 'N':
+        print('Sincere Apologies! This scholarship is currently for Varshney girls only!')
+        return  # Stop execution if membership is 'N'
+    
+    print('Please proceed with the Application Process')
+    personal_data = personal_info()
+    academic_data = academic_info()
+    if not academic_data:  # Check if academic_data is empty (ineligible applicant)
+        return
+    file_path = file_upload()
+    additional_data = additional_info()
+    agree = expectations_recipient()
+    if agree == 'Y':
+        print("""Declaration:
+        I hereby declare that the information provided is true and correct to the best of my knowledge and belief. I understand that any false information may result in the cancellation of my application/scholarship.""")
+        agree2 = input("I Agree (Y/N): ")
+        if agree2 == 'Y':
+            # Combine all data into a single dictionary
+            combined_data = {**personal_data, **academic_data, **additional_data, 'membership': membership, 'file_path': file_path}
+            save_to_dataframe(combined_data)
+            print('Thank you for your application! We will connect with you soon.')
+    else:
+        print('You need to agree to the expectations to proceed.')
 
 def personal_info():
-    name = input ('Full Name:  ')
-    dob = input ('Date of Birth(DD/MM/YYYY): ')
-    email_id = input('Email ID: ')
-    phone = input ('Phone number:  ')
-    address = input ('Full Address: ')
-    guardian = input ('Parent/Guardians Full Name : ')
+    data = {}
+    
+    while True:
+        data['name'] = input('Full Name: ')
+        if data['name'].replace(" ", "").isalpha():
+            break
+        else:
+            print("Invalid input. Please enter a valid name.")
+    
+    while True:
+        data['dob'] = input('Date of Birth (DD/MM/YYYY): ')
+        if re.match(r'\d{2}/\d{2}/\d{4}', data['dob']):
+            break
+        else:
+            print("Invalid input. Please enter the date of birth in the format DD/MM/YYYY.")
+    
+    while True:
+        data['email_id'] = input('Email ID: ')
+        if re.match(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', data['email_id']):
+            break
+        else:
+            print("Invalid email format. Please enter a valid email ID.")
+    
+    while True:
+        try:
+            data['phone'] = int(input('Phone number: '))
+            break
+        except ValueError:
+            print("Invalid input. Please enter a valid phone number.")
+    
+    data['address'] = input('Full Address: ')
+    data['guardian'] = input('Parent/Guardian\'s Full Name: ')
+    return data
 
-# Applicant enters Personal info
 def academic_info():
-    engg = input ('Have you taken admission in an Engineering College?(Y/N): ')
-    comp = input (' Did you get the admission based on any competition? (Y/N): ')
-    print (Comp_list)
-    comp_in_list = input('Is the Competition that you cleared in the list? (Y/N): ')
-    if comp == 'Y' and engg == 'Y' and comp_in_list == 'Y':
-        comp_exam = input ('Name of the Competitive Examination: ')
-        rank_comp_exam = input ('Rank/Score in the Competitive Examination: ')
-        engg_colg = input ('Engineering College : ')
-        field_engg = input ('Field of Engineering :') 
-        yr_grad = input ('Expected Year of Graduation : ')
-        tenth = input ('Secondary School Name: ')
-        tenth_marks = input ('Class X percentage : ')
-        twelth = input ('Senior Secondary School Name: ')
-        twelth_marks = input ('Class XII percentage : ')
-    else: 
-        print('Sorry, you are not eligible to apply for this scholoarship. If you think this is a mistake then please try again / contact us' )
+    data = {}
+    engg = input('Have you taken admission in an Engineering College? (Y/N): ')
+    comp = input('Did you get the admission based on any competition? (Y/N): ')
+    if comp == 'Y' and engg == 'Y':
+        print(Comp_list)
+        comp_in_list = input('Is the Competition that you cleared in the list? (Y/N): ')
+        if comp_in_list == 'Y':
+            data['comp_exam'] = input('Name of the Competitive Examination: ')
+            data['rank_comp_exam'] = input('Rank/Score in the Competitive Examination: ')
+            data['engg_colg'] = input('Engineering College: ')
+            data['field_engg'] = input('Field of Engineering: ')
+            data['yr_grad'] = input('Expected Year of Graduation: ')
+            data['tenth'] = input('Secondary School Name: ')
+            data['tenth_marks'] = input('Class X percentage: ')
+            data['twelth'] = input('Senior Secondary School Name: ')
+            data['twelth_marks'] = input('Class XII percentage: ')
+        else:
+            print('Sorry, you are not eligible to apply for this scholarship. If you think this is a mistake then please try again or contact us.')
+            return {}
+    else:
+        print('Sorry, you are not eligible to apply for this scholarship. If you think this is a mistake then please try again or contact us.')
+        return {}
+    return data
 
- # Check varshney samaj membership   
 def varshney_samaj_membership():
-    membership = input ('Do you belong to Varshney Samaj (Y/N): ')
-    
-# Additional responses by the applicant
+    membership = input('Do you belong to Varshney Samaj (Y/N): ')
+    return membership
+
+def file_upload():
+    while True:
+        file_path = input('Please provide the file path for the required document (PDF/JPEG): ')
+        if os.path.isfile(file_path) and file_path.lower().endswith(('.pdf', '.jpeg', '.jpg')):
+            break
+        else:
+            print("Invalid file. Please provide a valid file path to a PDF or JPEG document.")
+    return file_path
+
 def additional_info():
-    print ("Please answer the following briefly and in your own words ")
-    deserve = input ('1.Why do you deserve this scholarship?  ')
-    inspired = input('2.What inspired you to pursue a career in engineering?' )
-    goals= input ('3.What are your long-term career goals and how do you plan to achieve them? ')
-    #if deserve != 0 and inspired != 0 and goals != 0:
-        #print ('Your answers are recorded, please move to the next section ')
-    #else:
-        #print ("Please answer all the questions.")
-    
+    data = {}
+    print("Please answer the following briefly and in your own words")
+    data['deserve'] = input('1. Why do you deserve this scholarship? ')
+    data['inspired'] = input('2. What inspired you to pursue a career in engineering? ')
+    data['goals'] = input('3. What are your long-term career goals and how do you plan to achieve them? ')
+    return data
+
 def expectations_recipient():
-    print ("""Expectations from the Recipient'
-        I agree to the following expectations if selected for the scholarship'
-         Maintain progressive academic performance throughout the engineering studies.
-         Submit an annual progress report, including grades and academic achievements.
-         Participate in Varshney Samaj activities or events, promoting educational and social values within the community.
-         Participate in mentorship programs, sharing experiences and providing guidance to younger students or future scholarship applicants.
-         Act as an ambassador for the Mahima Medhavi Chatra Scholarship, representing its values and mission in academic and professional settings.
-         Provide feedback on the scholarship program to help refine and improve the process for future applicants.
-         Demonstrate dedication to the field of engineering through continuous learning, involvement in relevant projects, internships, or research activities. """)
-    agree = input ('I agree to the following expectations if selected for the scholarship.(Y/N):  ' )
-        
+    print("""Expectations from the Recipient:
+    I agree to the following expectations if selected for the scholarship:
+    - Maintain progressive academic performance throughout the engineering studies.
+    - Submit an annual progress report, including grades and academic achievements.
+    - Participate in Varshney Samaj activities or events, promoting educational and social values within the community.
+    - Participate in mentorship programs, sharing experiences and providing guidance to younger students or future scholarship applicants.
+    - Act as an ambassador for the Mahima Medhavi Chatra Scholarship, representing its values and mission in academic and professional settings.
+    - Provide feedback on the scholarship program to help refine and improve the process for future applicants.
+    - Demonstrate dedication to the field of engineering through continuous learning, involvement in relevant projects, internships, or research activities.""")
+    agree = input('I agree to the following expectations if selected for the scholarship (Y/N): ')
+    return agree
 
-
-
+def save_to_dataframe(data):
+    global df
+    df = df.append(data, ignore_index=True)
+    df.to_csv('scholarship_applications.csv', index=False)
+    print("Data has been saved to 'scholarship_applications.csv'.")
 
 if __name__ == "__main__":
     main()
+
+
