@@ -1,0 +1,119 @@
+import streamlit as st
+import pandas as pd
+import os
+import re
+
+Comp_list = ['JEE MAIN', 'BITSAT', 'JEE ADVANCED', 'VITEEE', 'WBJEE', 'COMEDK UGET', 'MHT CET', 'MET', 'KCET', 'AP EAMCET', 'KEAM', 'AMUEEE', 'CUET', 'GUJCET']
+
+# Initialize an empty DataFrame to store application data
+df = pd.DataFrame(columns=[
+    'name', 'dob', 'email_id', 'phone', 'address', 'guardian', 'comp_exam', 'rank_comp_exam', 
+    'engg_colg', 'field_engg', 'yr_grad', 'tenth', 'tenth_marks', 'twelth', 'twelth_marks', 
+    'deserve', 'inspired', 'goals', 'membership', 'file_path'])
+
+# Function to save data to the dataframe
+def save_to_dataframe(data):
+    global df
+    df = df.append(data, ignore_index=True)
+    df.to_csv('scholarship_applications.csv', index=False)
+    st.success("Data has been saved to 'scholarship_applications.csv'.")
+
+def main():
+    st.title("Mahima Medhavi Chatra Scholarship Application")
+    st.write("""
+        This scholarship is intended to support Varshney Samaj girls who have been selected in any engineering field through competitive exams. 
+        Please fill out the form completely and upload the required documents by July 15, 2024!
+    """)
+    
+    # Membership Check
+    membership = st.radio('Do you belong to Varshney Samaj?', ('Yes', 'No'))
+    
+    if membership == 'No':
+        st.warning('Sincere Apologies! This scholarship is currently for Varshney girls only!')
+        return
+    
+    st.info('Please proceed with the Application Process')
+    
+    # Personal Information
+    st.header('Personal Information')
+    personal_data = {}
+    personal_data['name'] = st.text_input('Full Name:')
+    personal_data['dob'] = st.text_input('Date of Birth (DD/MM/YYYY):')
+    personal_data['email_id'] = st.text_input('Email ID:')
+    personal_data['phone'] = st.text_input('Phone number:')
+    personal_data['address'] = st.text_area('Full Address:')
+    personal_data['guardian'] = st.text_input('Parent/Guardian\'s Full Name:')
+    
+    # Academic Information
+    st.header('Academic Information')
+    academic_data = {}
+    engg = st.radio('Have you taken admission in an Engineering College?', ('Yes', 'No'))
+    comp = st.radio('Did you get the admission based on any competition?', ('Yes', 'No'))
+    
+    if comp == 'Yes' and engg == 'Yes':
+        comp_in_list = st.radio('Is the Competition that you cleared in the list?', ('Yes', 'No'))
+        if comp_in_list == 'Yes':
+            academic_data['comp_exam'] = st.selectbox('Name of the Competitive Examination:', Comp_list)
+            academic_data['rank_comp_exam'] = st.text_input('Rank/Score in the Competitive Examination:')
+            academic_data['engg_colg'] = st.text_input('Engineering College:')
+            academic_data['field_engg'] = st.text_input('Field of Engineering:')
+            academic_data['yr_grad'] = st.text_input('Expected Year of Graduation:')
+            academic_data['tenth'] = st.text_input('Secondary School Name:')
+            academic_data['tenth_marks'] = st.text_input('Class X percentage:')
+            academic_data['twelth'] = st.text_input('Senior Secondary School Name:')
+            academic_data['twelth_marks'] = st.text_input('Class XII percentage:')
+        else:
+            st.error('Sorry, you are not eligible to apply for this scholarship. If you think this is a mistake then please try again or contact us.')
+            return
+    else:
+        st.error('Sorry, you are not eligible to apply for this scholarship. If you think this is a mistake then please try again or contact us.')
+        return
+
+    # File Upload
+    st.header('File Upload')
+    file = st.file_uploader("Please provide the file path for the required document (PDF/JPEG):", type=['pdf', 'jpeg', 'jpg'])
+    file_path = None
+    if file:
+        file_path = os.path.join("uploads", file.name)
+        with open(file_path, "wb") as f:
+            f.write(file.getbuffer())
+        st.success(f"File saved at {file_path}")
+    
+    # Additional Information
+    st.header('Additional Information')
+    additional_data = {}
+    additional_data['deserve'] = st.text_area('1. Why do you deserve this scholarship?')
+    additional_data['inspired'] = st.text_area('2. What inspired you to pursue a career in engineering?')
+    additional_data['goals'] = st.text_area('3. What are your long-term career goals and how do you plan to achieve them?')
+
+    # Expectations from the Recipient
+    st.header('Expectations from the Recipient')
+    st.write("""
+    I agree to the following expectations if selected for the scholarship:
+    - Maintain progressive academic performance throughout the engineering studies.
+    - Submit an annual progress report, including grades and academic achievements.
+    - Participate in Varshney Samaj activities or events, promoting educational and social values within the community.
+    - Participate in mentorship programs, sharing experiences and providing guidance to younger students or future scholarship applicants.
+    - Act as an ambassador for the Mahima Medhavi Chatra Scholarship, representing its values and mission in academic and professional settings.
+    - Provide feedback on the scholarship program to help refine and improve the process for future applicants.
+    - Demonstrate dedication to the field of engineering through continuous learning, involvement in relevant projects, internships, or research activities.
+    """)
+    agree = st.radio('I agree to the following expectations if selected for the scholarship:', ('Yes', 'No'))
+    
+    if agree == 'Yes':
+        st.write("""
+        Declaration:
+        I hereby declare that the information provided is true and correct to the best of my knowledge and belief. 
+        I understand that any false information may result in the cancellation of my application/scholarship.
+        """)
+        agree2 = st.radio("I Agree", ('Yes', 'No'))
+        if agree2 == 'Yes':
+            # Combine all data into a single dictionary
+            combined_data = {**personal_data, **academic_data, **additional_data, 'membership': membership, 'file_path': file_path}
+            save_to_dataframe(combined_data)
+            st.success('Thank you for your application! We will connect with you soon.')
+    else:
+        st.warning('You need to agree to the expectations to proceed.')
+
+if __name__ == "__main__":
+    main()
